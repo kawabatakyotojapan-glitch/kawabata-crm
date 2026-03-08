@@ -1,0 +1,504 @@
+{\rtf1\ansi\ansicpg932\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!DOCTYPE html>\
+<html lang="ja">\
+<head>\
+<meta charset="UTF-8"/>\
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>\
+<meta name="apple-mobile-web-app-capable" content="yes"/>\
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>\
+<meta name="apple-mobile-web-app-title" content="Kawabata CRM"/>\
+<title>Kawabata\uc0\u65372 \u12362 \u23458 \u27096 \u31649 \u29702 \u24115 </title>\
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>\
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>\
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>\
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet"/>\
+<style>\
+  body \{ margin:0; font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background:#fafaf9; \}\
+  * \{ -webkit-tap-highlight-color: transparent; box-sizing: border-box; \}\
+  input, select, textarea, button \{ font-family: inherit; \}\
+</style>\
+</head>\
+<body>\
+<div id="root"></div>\
+<script type="text/babel">\
+const \{ useState, useEffect, useMemo, useRef \} = React;\
+\
+const STORAGE_KEY = "kawabata_crm_v1";\
+const API_URL = "https://api.anthropic.com/v1/messages";\
+const ANTHROPIC_KEY = ""; // \uc0\u8592  \u12354 \u12392 \u12391 API\u12461 \u12540 \u12434 \u12371 \u12371 \u12395 \u20837 \u21147 \
+\
+const STATUS_OPTIONS = ["\uc0\u21021 \u22238 \u12372 \u26469 \u24215 ","\u24120 \u36899 \u27096 ","VIP\u27096 ","\u35201 \u12501 \u12457 \u12525 \u12540 ","\u20241 \u30496 \u20013 "];\
+const STATUS_COLORS = \{\
+  "\uc0\u21021 \u22238 \u12372 \u26469 \u24215 ":"bg-emerald-50 text-emerald-700 border border-emerald-200",\
+  "\uc0\u24120 \u36899 \u27096 ":"bg-amber-50 text-amber-700 border border-amber-200",\
+  "VIP\uc0\u27096 ":"bg-rose-50 text-rose-700 border border-rose-200",\
+  "\uc0\u35201 \u12501 \u12457 \u12525 \u12540 ":"bg-blue-50 text-blue-700 border border-blue-200",\
+  "\uc0\u20241 \u30496 \u20013 ":"bg-gray-100 text-gray-500 border border-gray-200",\
+\};\
+const SEASONS = ["\uc0\u26149 \u12398 \u29486 \u31435 ","\u22799 \u12398 \u29486 \u31435 ","\u31179 \u12398 \u29486 \u31435 ","\u20908 \u12398 \u29486 \u31435 ","\u29305 \u21029 \u24109 ","\u12362 \u12414 \u12363 \u12379 "];\
+const CONTACT_METHODS = ["\uc0\u12513 \u12540 \u12523 ","SMS","LINE","WhatsApp","\u12362 \u38651 \u35441 ","\u25163 \u32025 "];\
+const CONTACT_ICONS = \{"\uc0\u12513 \u12540 \u12523 ":"\u55357 \u56551 ","SMS":"\u55357 \u56492 ","LINE":"\u55357 \u56474 ","WhatsApp":"\u55357 \u56561 ","\u12362 \u38651 \u35441 ":"\u55357 \u56542 ","\u25163 \u32025 ":"\u9993 \u65039 "\};\
+const MEMO_CATS = [\
+  \{key:"allergy", label:"\uc0\u12450 \u12524 \u12523 \u12462 \u12540 ", icon:"\u9888 \u65039 ", color:"border-red-300 bg-red-50",      badge:"bg-red-100 text-red-700 border-red-200"\},\
+  \{key:"dislike", label:"\uc0\u33510 \u25163 \u12394 \u39135 \u26448 ", icon:"\u55357 \u56901 ", color:"border-orange-300 bg-orange-50", badge:"bg-orange-100 text-orange-700 border-orange-200"\},\
+  \{key:"favorite",label:"\uc0\u22909 \u29289 ",       icon:"\u55356 \u57119 ", color:"border-amber-300 bg-amber-50",   badge:"bg-amber-100 text-amber-700 border-amber-200"\},\
+  \{key:"other",   label:"\uc0\u12381 \u12398 \u20182 \u12513 \u12514 ", icon:"\u55357 \u56541 ", color:"border-stone-200 bg-stone-50",   badge:"bg-stone-100 text-stone-600 border-stone-200"\},\
+];\
+\
+const emptyMemos  = () => (\{allergy:[],dislike:[],favorite:[],other:[]\});\
+const emptyForm   = () => (\{name:"",company:"",department:"",title:"",email:"",phone:"",status:"\uc0\u21021 \u22238 \u12372 \u26469 \u24215 ",totalSpend:"",firstVisit:"",lastVisit:"",birthday:"",anniversary:"",contactMethods:[],referrer:"",family:[],memos:emptyMemos(),history:[]\});\
+const emptyVisit  = () => (\{date:new Date().toISOString().slice(0,10),amount:"",guests:"",menu:SEASONS[0],detail:""\});\
+const emptyFamily = () => (\{id:Date.now(),name:"",relation:"",birthday:""\});\
+\
+const SAMPLE = [\
+  \{id:1,name:"\uc0\u23665 \u30000  \u22826 \u37070 ",company:"\u23665 \u30000 \u21830 \u20107 \u26666 \u24335 \u20250 \u31038 ",department:"\u32076 \u21942 \u20225 \u30011 \u37096 ",title:"\u37096 \u38263 ",email:"yamada@yamada.co.jp",phone:"090-1234-5678",status:"VIP\u27096 ",totalSpend:480000,firstVisit:"2024-03-15",lastVisit:"2026-02-20",birthday:"1968-05-12",anniversary:"1998-09-20",contactMethods:["\u12513 \u12540 \u12523 ","LINE"],referrer:"\u30000 \u20013  \u24185 \u20107 ",\
+    family:[\{id:1,name:"\uc0\u23665 \u30000  \u33391 \u23376 ",relation:"\u22885 \u27096 ",birthday:"1972-11-03"\}],\
+    memos:\{allergy:[\{id:1,text:"\uc0\u30002 \u27579 \u39006 \u65288 \u37325 \u31716 \u65289 ",date:"2025/6/1"\}],dislike:[\{id:2,text:"\u36763 \u12356 \u12418 \u12398 \u20840 \u33324 ",date:"2025/6/1"\}],favorite:[\{id:3,text:"\u26085 \u26412 \u37202 \u65288 \u21313 \u22235 \u20195 \u65289 ",date:"2025/6/1"\}],other:[\{id:5,text:"\u25509 \u24453 \u12364 \u22810 \u12356 \u12290 \u35352 \u24565 \u26085 \u12395 \u12399 \u12362 \u36196 \u39151 \u12290 ",date:"2025/6/1"\}]\},\
+    history:[\{id:1,date:"2026-02-20",amount:85000,guests:4,menu:"\uc0\u20908 \u12398 \u29486 \u31435 ",detail:"\u25509 \u24453 \u12290 \u12405 \u12368 \u37707 \u12467 \u12540 \u12473 \u12290 "\},\{id:2,date:"2025-11-10",amount:62000,guests:2,menu:"\u31179 \u12398 \u29486 \u31435 ",detail:"\u22885 \u27096 \u12392 \u12372 \u26469 \u24215 \u12290 \u26494 \u33592 \u12467 \u12540 \u12473 \u12290 "\}],createdAt:"2024-03-15"\},\
+  \{id:2,name:"\uc0\u37428 \u26408  \u33457 \u23376 ",company:"\u37428 \u26408 \u12501 \u12540 \u12474 \u26666 \u24335 \u20250 \u31038 ",department:"\u21942 \u26989 \u26412 \u37096 ",title:"\u21462 \u32224 \u24441 ",email:"suzuki@suzukifoods.co.jp",phone:"090-9876-5432",status:"\u24120 \u36899 \u27096 ",totalSpend:210000,firstVisit:"2025-01-08",lastVisit:"2026-01-15",birthday:"1975-03-28",anniversary:"",contactMethods:["SMS"],referrer:"",family:[],memos:emptyMemos(),history:[\{id:1,date:"2026-01-15",amount:45000,guests:3,menu:"\u20908 \u12398 \u29486 \u31435 ",detail:"\u26032 \u24180 \u20250 \u12290 "\}],createdAt:"2025-01-08"\},\
+];\
+\
+function App() \{\
+  const [customers,setCustomers] = useState(()=>\{ try\{const s=localStorage.getItem(STORAGE_KEY);return s?JSON.parse(s):SAMPLE;\}catch\{return SAMPLE;\}\});\
+  const [view,setView]           = useState("list");\
+  const [selectedId,setSelectedId] = useState(null);\
+  const [form,setForm]           = useState(emptyForm());\
+  const [isEdit,setIsEdit]       = useState(false);\
+  const [search,setSearch]       = useState("");\
+  const [filterStatus,setFilterStatus] = useState("\uc0\u12377 \u12409 \u12390 ");\
+  const [tab,setTab]             = useState("info");\
+  const [newMemos,setNewMemos]   = useState(\{allergy:"",dislike:"",favorite:"",other:""\});\
+  const [visitForm,setVisitForm] = useState(null);\
+  const [familyDraft,setFamilyDraft] = useState(null);\
+  const [msgMode,setMsgMode]     = useState(false);\
+  const [msgTarget,setMsgTarget] = useState(null);\
+  const [msgLoading,setMsgLoading] = useState(false);\
+  const [msgDraft,setMsgDraft]   = useState(\{method:"",subject:"",body:""\});\
+  const [msgType,setMsgType]     = useState("\uc0\u12362 \u31036 ");\
+  const [cardLoading,setCardLoading] = useState(false);\
+  const cardRef = useRef();\
+\
+  useEffect(()=>\{ try\{localStorage.setItem(STORAGE_KEY,JSON.stringify(customers));\}catch\{\} \},[customers]);\
+\
+  const selected = customers.find(c=>c.id===selectedId);\
+  const update   = (id,data) => setCustomers(cs=>cs.map(c=>c.id===id?\{...c,...data\}:c));\
+\
+  const filtered = useMemo(()=>customers.filter(c=>\{\
+    const q=search.toLowerCase();\
+    const ok=!q||[c.name,c.company,c.department,c.title,c.email,c.referrer].some(v=>v?.toLowerCase().includes(q));\
+    return ok&&(filterStatus==="\uc0\u12377 \u12409 \u12390 "||c.status===filterStatus);\
+  \}),[customers,search,filterStatus]);\
+\
+  const stats = useMemo(()=>(\{\
+    total:customers.length, vip:customers.filter(c=>c.status==="VIP\uc0\u27096 ").length,\
+    regular:customers.filter(c=>c.status==="\uc0\u24120 \u36899 \u27096 ").length,\
+    totalSpend:customers.reduce((s,c)=>s+(Number(c.totalSpend)||0),0),\
+  \}),[customers]);\
+\
+  const upcoming = useMemo(()=>\{\
+    const today=new Date(); const res=[];\
+    customers.forEach(c=>\{\
+      [["birthday","\uc0\u12362 \u35477 \u29983 \u26085 "],["anniversary","\u12372 \u32080 \u23130 \u35352 \u24565 \u26085 "]].forEach(([k,l])=>\{\
+        if(!c[k]) return; const d=new Date(c[k]); if(isNaN(d)) return;\
+        const next=new Date(today.getFullYear(),d.getMonth(),d.getDate());\
+        if(next<today) next.setFullYear(today.getFullYear()+1);\
+        const diff=Math.ceil((next-today)/864e5);\
+        if(diff<=30) res.push(\{name:c.name,label:l,date:`$\{d.getMonth()+1\}/$\{d.getDate()\}`,diff,id:c.id\});\
+      \});\
+      (c.family||[]).forEach(f=>\{\
+        if(!f.birthday) return; const d=new Date(f.birthday); if(isNaN(d)) return;\
+        const next=new Date(today.getFullYear(),d.getMonth(),d.getDate());\
+        if(next<today) next.setFullYear(today.getFullYear()+1);\
+        const diff=Math.ceil((next-today)/864e5);\
+        if(diff<=30) res.push(\{name:`$\{c.name\}\uc0\u27096  $\{f.relation\}\u65288 $\{f.name\}\u65289 `,label:"\u12362 \u35477 \u29983 \u26085 ",date:`$\{d.getMonth()+1\}/$\{d.getDate()\}`,diff,id:c.id\});\
+      \});\
+    \});\
+    return res.sort((a,b)=>a.diff-b.diff);\
+  \},[customers]);\
+\
+  const bg      = "bg-stone-50";\
+  const card    = "bg-white rounded-2xl shadow-sm border border-stone-100";\
+  const iCls    = "w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 bg-white";\
+  const fmt     = n=>n?`\'a5$\{Number(n).toLocaleString()\}`:"\'97";\
+  const fmtD    = d=>d?d.replace(/-/g,"/"):"\'97";\
+  const fmtMD   = d=>\{ if(!d) return "\'97"; const dt=new Date(d); return isNaN(dt)?"\'97":`$\{dt.getMonth()+1\}\uc0\u26376 $\{dt.getDate()\}\u26085 `; \};\
+  const toggleC = m=>\{ const cur=form.contactMethods||[]; setForm(p=>(\{...p,contactMethods:cur.includes(m)?cur.filter(x=>x!==m):[...cur,m]\})); \};\
+\
+  const openGCal = (c,date="")=>\{\
+    const d=new Date(date||new Date());\
+    const pad=n=>String(n).padStart(2,"0");\
+    const f8=dt=>`$\{dt.getFullYear()\}$\{pad(dt.getMonth()+1)\}$\{pad(dt.getDate())\}`;\
+    const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=$\{encodeURIComponent(`\uc0\u12304 \u24029 \u31471 \u12305 $\{c.name\} \u27096  \u12372 \u20104 \u32004 `)\}&dates=$\{f8(d)\}T180000/$\{f8(d)\}T210000&details=$\{encodeURIComponent(`\u12362 \u23458 \u27096 \u65306 $\{c.name\} \u27096 \\n\u20250 \u31038 \u65306 $\{c.company||""\}\\n\u24441 \u32887 \u65306 $\{c.title||""\}\\n\u12362 \u38651 \u35441 \u65306 $\{c.phone||""\}\\n\u12473 \u12486 \u12540 \u12479 \u12473 \u65306 $\{c.status\}`)\}`;\
+    window.open(url,"_blank");\
+  \};\
+\
+  const handleCard = async e=>\{\
+    const file=e.target.files[0]; if(!file) return;\
+    setCardLoading(true);\
+    const reader=new FileReader();\
+    reader.onload=async ev=>\{\
+      const b64=ev.target.result.split(",")[1];\
+      try\{\
+        const res=await fetch(API_URL,\{method:"POST",headers:\{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"\},\
+          body:JSON.stringify(\{model:"claude-sonnet-4-20250514",max_tokens:500,messages:[\{role:"user",content:[\{type:"image",source:\{type:"base64",media_type:file.type||"image/jpeg",data:b64\}\},\{type:"text",text:'\uc0\u21517 \u21050 \u12398 \u24773 \u22577 \u12434 JSON\u12398 \u12415 \u12391 \u36820 \u12375 \u12390 \u12367 \u12384 \u12373 \u12356 \u65288 \u12510 \u12540 \u12463 \u12480 \u12454 \u12531 \u19981 \u35201 \u65289 \u65306 \{"name":"","company":"","department":"","title":"","email":"","phone":""\}'\}]\}]\})\});\
+        const data=await res.json();\
+        const txt=(data.content||[]).map(b=>b.text||"").join("").replace(/```json|```/g,"").trim();\
+        const parsed=JSON.parse(txt);\
+        setForm(p=>(\{...p,...parsed\})); setIsEdit(false); setView("form");\
+      \}catch\{ alert("\uc0\u35501 \u12415 \u21462 \u12426 \u12395 \u22833 \u25943 \u12375 \u12414 \u12375 \u12383 \u12290 \u12418 \u12358 \u19968 \u24230 \u12362 \u35430 \u12375 \u12367 \u12384 \u12373 \u12356 \u12290 "); \}\
+      setCardLoading(false); e.target.value="";\
+    \};\
+    reader.readAsDataURL(file);\
+  \};\
+\
+  const handleCSV = e=>\{\
+    const file=e.target.files[0]; if(!file) return;\
+    const reader=new FileReader();\
+    reader.onload=ev=>\{\
+      const lines=ev.target.result.split("\\n").filter(Boolean);\
+      if(lines.length<2) return alert("\uc0\u12487 \u12540 \u12479 \u12364 \u35211 \u12388 \u12363 \u12426 \u12414 \u12379 \u12435 ");\
+      const headers=lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,"").toLowerCase());\
+      const MAP=\{name:["\uc0\u12362 \u21517 \u21069 ","name","\u27663 \u21517 ","\u39015 \u23458 \u21517 "],company:["\u20250 \u31038 \u21517 ","company","\u27861 \u20154 \u21517 "],department:["\u37096 \u32626 ","department"],title:["\u24441 \u32887 ","title"],email:["\u12513 \u12540 \u12523 ","email","\u12513 \u12540 \u12523 \u12450 \u12489 \u12524 \u12473 "],phone:["\u38651 \u35441 ","phone","tel","\u38651 \u35441 \u30058 \u21495 "],birthday:["\u35477 \u29983 \u26085 ","birthday","\u29983 \u24180 \u26376 \u26085 "],referrer:["\u32057 \u20171 \u32773 ","referrer","\u12372 \u32057 \u20171 \u32773 "]\};\
+      const findCol=keys=>\{ for(const k of keys)\{const i=headers.findIndex(h=>h.includes(k));if(i>=0)return i;\} return -1;\};\
+      const colMap=Object.fromEntries(Object.entries(MAP).map(([k,v])=>[k,findCol(v)]));\
+      const newC=lines.slice(1).map(line=>\{\
+        const cols=line.split(",").map(c=>c.trim().replace(/^"|"$/g,""));\
+        const get=k=>colMap[k]>=0?cols[colMap[k]]||"":"";\
+        return\{...emptyForm(),id:Date.now()+Math.random(),name:get("name"),company:get("company"),department:get("department"),title:get("title"),email:get("email"),phone:get("phone"),birthday:get("birthday"),referrer:get("referrer"),status:"\uc0\u21021 \u22238 \u12372 \u26469 \u24215 ",createdAt:new Date().toISOString().slice(0,10)\};\
+      \}).filter(c=>c.name);\
+      if(!newC.length) return alert("\uc0\u21462 \u12426 \u36796 \u12417 \u12427 \u12487 \u12540 \u12479 \u12364 \u35211 \u12388 \u12363 \u12426 \u12414 \u12379 \u12435 \u12391 \u12375 \u12383 ");\
+      setCustomers(cs=>[...newC,...cs]); alert(`$\{newC.length\}\uc0\u20214 \u12398 \u12362 \u23458 \u27096 \u24773 \u22577 \u12434 \u21462 \u12426 \u36796 \u12415 \u12414 \u12375 \u12383 \u10024 `);\
+    \};\
+    reader.readAsText(file,"utf-8"); e.target.value="";\
+  \};\
+\
+  const generateMsg=async(c,type)=>\{\
+    setMsgLoading(true);\
+    const method=(c.contactMethods||[])[0]||"\uc0\u12513 \u12540 \u12523 ";\
+    const isEmail=method==="\uc0\u12513 \u12540 \u12523 ";\
+    try\{\
+      const res=await fetch(API_URL,\{method:"POST",headers:\{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"\},\
+        body:JSON.stringify(\{model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[\{role:"user",content:`\uc0\u20140 \u37117 \u31047 \u22290 \u12398 \u39640 \u32026 \u26009 \u29702 \u23627 \u12300 \u24029 \u31471 \u12301 \u12398 \u22899 \u23558 \u12392 \u12375 \u12390 \u12289 $\{c.name\}\u27096 \u12408 $\{type\}\u12398 $\{isEmail?"\u12513 \u12540 \u12523 ":"\u12513 \u12483 \u12475 \u12540 \u12472 "\}\u12434 \u20316 \u25104 \u12290 \u20250 \u31038 :$\{c.company||""\}\u12289 \u24441 \u32887 :$\{c.title||""\}\u12289 \u22909 \u29289 :$\{(c.memos?.favorite||[]).map(m=>m.text).join("\u12539 ")||"\u19981 \u26126 "\}\u12290 \u19969 \u23527 \u12391 \u28201 \u12363 \u12356 \u21644 \u12398 \u25991 \u20307 \u12290 JSON\u12398 \u12415 \u65288 \u12510 \u12540 \u12463 \u12480 \u12454 \u12531 \u19981 \u35201 \u65289 \u65306 \{"subject":"$\{isEmail?"\u20214 \u21517 ":""\}","body":"\u26412 \u25991 "\}`\}]\})\});\
+      const data=await res.json();\
+      const txt=(data.content||[]).map(b=>b.text||"").join("").replace(/```json|```/g,"").trim();\
+      const parsed=JSON.parse(txt);\
+      setMsgDraft(\{method,subject:parsed.subject||"",body:parsed.body||""\});\
+    \}catch\{ setMsgDraft(\{method,subject:"",body:"\uc0\u12513 \u12483 \u12475 \u12540 \u12472 \u12398 \u29983 \u25104 \u12395 \u22833 \u25943 \u12375 \u12414 \u12375 \u12383 \u12290 "\}); \}\
+    setMsgLoading(false);\
+  \};\
+\
+  const openMsg=(c,type="\uc0\u12362 \u31036 ")=>\{ setMsgTarget(c); setMsgType(type); setMsgDraft(\{method:"",subject:"",body:""\}); setMsgMode(true); generateMsg(c,type); \};\
+\
+  const sendMsg=()=>\{\
+    if(!msgTarget) return;\
+    const m=msgDraft.method;\
+    if(m==="\uc0\u12513 \u12540 \u12523 "&&msgTarget.email) window.open(`mailto:$\{msgTarget.email\}?subject=$\{encodeURIComponent(msgDraft.subject)\}&body=$\{encodeURIComponent(msgDraft.body)\}`);\
+    else if(m==="SMS"&&msgTarget.phone) window.open(`sms:$\{msgTarget.phone\}?body=$\{encodeURIComponent(msgDraft.body)\}`);\
+    else if(m==="LINE") window.open(`https://line.me/R/share?text=$\{encodeURIComponent(msgDraft.body)\}`);\
+    else if(m==="WhatsApp"&&msgTarget.phone) window.open(`https://wa.me/$\{msgTarget.phone.replace(/\\D/g,"")\}?text=$\{encodeURIComponent(msgDraft.body)\}`);\
+    else alert("\uc0\u36865 \u20449 \u20808 \u12398 \u36899 \u32097 \u20808 \u12364 \u30331 \u37682 \u12373 \u12428 \u12390 \u12356 \u12414 \u12379 \u12435 \u12290 ");\
+  \};\
+\
+  const openNew=()=>\{ setForm(emptyForm()); setIsEdit(false); setView("form"); \};\
+  const openEdit=c=>\{ setForm(\{...c,totalSpend:c.totalSpend?.toString()??"",memos:c.memos||emptyMemos(),family:c.family||[],contactMethods:c.contactMethods||[]\}); setIsEdit(true); setView("form"); \};\
+  const openDetail=c=>\{ setSelectedId(c.id); setTab("info"); setVisitForm(null); setFamilyDraft(null); setNewMemos(\{allergy:"",dislike:"",favorite:"",other:""\}); setView("detail"); \};\
+  const saveForm=()=>\{\
+    if(!form.name.trim()) return alert("\uc0\u12362 \u21517 \u21069 \u12399 \u24517 \u38920 \u12391 \u12377 ");\
+    const entry=\{...form,totalSpend:Number(form.totalSpend)||0\};\
+    if(isEdit)\{update(entry.id,entry);setView("detail");\}\
+    else\{setCustomers(cs=>[\{...entry,id:Date.now(),createdAt:new Date().toISOString().slice(0,10),history:[]\},...cs]);setView("list");\}\
+  \};\
+  const delCustomer=id=>\{ if(!confirm("\uc0\u21066 \u38500 \u12375 \u12414 \u12377 \u12363 \u65311 "))return; setCustomers(cs=>cs.filter(c=>c.id!==id)); setView("list"); \};\
+  const addMemo=key=>\{ if(!newMemos[key].trim()||!selected)return; const m=\{...(selected.memos||emptyMemos())\}; m[key]=[\{id:Date.now(),text:newMemos[key],date:new Date().toLocaleDateString("ja-JP")\},...(m[key]||[])]; update(selected.id,\{memos:m\}); setNewMemos(p=>(\{...p,[key]:""\})); \};\
+  const delMemo=(key,mid)=>\{ const m=\{...(selected.memos||emptyMemos())\}; m[key]=(m[key]||[]).filter(x=>x.id!==mid); update(selected.id,\{memos:m\}); \};\
+  const saveVisit=()=>\{\
+    if(!visitForm?.date||!selected)return;\
+    const v=\{...visitForm,id:Date.now(),amount:Number(visitForm.amount)||0,guests:Number(visitForm.guests)||1\};\
+    const hist=[v,...(selected.history||[])].sort((a,b)=>b.date.localeCompare(a.date));\
+    update(selected.id,\{history:hist,totalSpend:hist.reduce((s,x)=>s+(x.amount||0),0),lastVisit:hist[0]?.date,firstVisit:selected.firstVisit||v.date\}); setVisitForm(null);\
+  \};\
+  const delVisit=vid=>\{ const h=(selected.history||[]).filter(v=>v.id!==vid); update(selected.id,\{history:h,totalSpend:h.reduce((s,v)=>s+(v.amount||0),0),lastVisit:h[0]?.date||""\}); \};\
+  const saveFamily=()=>\{\
+    if(!familyDraft?.name?.trim())return;\
+    const ex=selected.family||[];\
+    const family=familyDraft.id&&ex.find(f=>f.id===familyDraft.id)?ex.map(f=>f.id===familyDraft.id?familyDraft:f):[...ex,\{...familyDraft,id:Date.now()\}];\
+    update(selected.id,\{family\}); setFamilyDraft(null);\
+  \};\
+  const delFamily=fid=>update(selected.id,\{family:(selected.family||[]).filter(f=>f.id!==fid)\});\
+\
+  // \uc0\u9472 \u9472  MSG MODAL \u9472 \u9472 \
+  const MsgModal=()=>(\
+    <div style=\{\{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"\}\}>\
+      <div className="bg-white rounded-2xl shadow-xl w-full" style=\{\{maxWidth:"32rem"\}\}>\
+        <div className="bg-stone-800 text-white px-5 py-4 rounded-t-2xl flex items-center justify-between">\
+          <div><div className="text-xs text-stone-400">\uc0\u12513 \u12483 \u12475 \u12540 \u12472 \u20316 \u25104 </div><div className="font-bold">\{msgTarget?.name\} \u27096  \'97 \{msgType\}</div></div>\
+          <button onClick=\{()=>setMsgMode(false)\} className="text-stone-400 hover:text-white text-xl">\uc0\u10005 </button>\
+        </div>\
+        <div className="p-5 space-y-4">\
+          <div>\
+            <div className="text-xs text-stone-400 mb-2">\uc0\u36865 \u20449 \u26041 \u27861 </div>\
+            <div className="flex flex-wrap gap-2">\
+              \{CONTACT_METHODS.map(m=>\{ const pref=(msgTarget?.contactMethods||[]).includes(m); return(\
+                <button key=\{m\} onClick=\{()=>setMsgDraft(p=>(\{...p,method:m\}))\} className=\{`px-3 py-1.5 rounded-full text-xs font-medium border transition $\{msgDraft.method===m?"bg-rose-700 text-white border-rose-700":pref?"bg-rose-50 text-rose-700 border-rose-200":"bg-white text-stone-400 border-stone-200"\}`\}>\
+                  \{CONTACT_ICONS[m]\} \{m\}\{pref?" \uc0\u9733 ":""\}\
+                </button>\
+              );\})\}\
+            </div>\
+          </div>\
+          \{msgLoading?(\
+            <div className="text-center py-8 text-stone-400"><div className="text-2xl mb-2">\uc0\u9997 \u65039 </div><div className="text-sm">AI\u12364 \u25991 \u38754 \u12434 \u20316 \u25104 \u20013 \'85</div></div>\
+          ):(\
+            <>\
+              \{msgDraft.method==="\uc0\u12513 \u12540 \u12523 "&&<div><div className="text-xs text-stone-400 mb-1">\u20214 \u21517 </div><input value=\{msgDraft.subject\} onChange=\{e=>setMsgDraft(p=>(\{...p,subject:e.target.value\}))\} className=\{iCls\}/></div>\}\
+              <div><div className="text-xs text-stone-400 mb-1">\uc0\u26412 \u25991 </div><textarea value=\{msgDraft.body\} onChange=\{e=>setMsgDraft(p=>(\{...p,body:e.target.value\}))\} rows=\{8\} className=\{`$\{iCls\} resize-none`\}/></div>\
+              <div className="flex flex-wrap gap-2">\
+                \{["\uc0\u12362 \u31036 ","\u12362 \u35477 \u29983 \u26085 ","\u12372 \u26469 \u24215 \u26696 \u20869 ","\u35352 \u24565 \u26085 "].map(t=>(\
+                  <button key=\{t\} onClick=\{()=>\{setMsgType(t);generateMsg(msgTarget,t);\}\} className=\{`text-xs px-3 py-1.5 rounded-full border transition $\{msgType===t?"bg-stone-700 text-white":"bg-white text-stone-500 border-stone-200"\}`\}>\{t\}</button>\
+                ))\}\
+              </div>\
+              <div className="flex gap-2">\
+                <button onClick=\{sendMsg\} disabled=\{!msgDraft.method||!msgDraft.body\} className="flex-1 bg-rose-700 hover:bg-rose-600 disabled:bg-stone-200 disabled:text-stone-400 text-white font-semibold py-2.5 rounded-xl text-sm">\
+                  \{msgDraft.method?`$\{CONTACT_ICONS[msgDraft.method]\} $\{msgDraft.method\}\uc0\u12391 \u36865 \u20449 `:"\u36865 \u20449 \u26041 \u27861 \u12434 \u36984 \u25246 "\}\
+                </button>\
+                <button onClick=\{()=>generateMsg(msgTarget,msgType)\} className="bg-stone-100 text-stone-600 px-4 rounded-xl text-sm">\uc0\u20877 \u29983 \u25104 </button>\
+              </div>\
+            </>\
+          )\}\
+        </div>\
+      </div>\
+    </div>\
+  );\
+\
+  // \uc0\u9552 \u9552  LIST \u9552 \u9552 \
+  if(view==="list") return (\
+    <div className=\{`min-h-screen $\{bg\}`\}>\
+      \{msgMode&&<MsgModal/>\}\
+      <header className="bg-stone-800 text-stone-100 px-4 py-4">\
+        <div className="flex items-center justify-between mb-3">\
+          <div>\
+            <div className="text-xs text-stone-400 tracking-widest">Kawabata\uc0\u12288 \u24029 \u31471 </div>\
+            <h1 className="text-lg font-bold">\uc0\u12362 \u23458 \u27096 \u31649 \u29702 \u24115 </h1>\
+          </div>\
+          <button onClick=\{openNew\} className="bg-rose-700 text-white text-sm font-medium px-4 py-2 rounded-xl">\uc0\u65291  \u26032 \u35215 \u30331 \u37682 </button>\
+        </div>\
+        <div className="flex gap-2">\
+          <label className="cursor-pointer bg-stone-600 text-white text-xs font-medium px-3 py-2 rounded-xl flex-1 text-center">\
+            \uc0\u55357 \u56514  CSV\u21462 \u36796 <input type="file" accept=".csv" className="hidden" onChange=\{handleCSV\}/>\
+          </label>\
+          <label className="cursor-pointer bg-amber-600 text-white text-xs font-medium px-3 py-2 rounded-xl flex-1 text-center">\
+            \{cardLoading?"\uc0\u35501 \u21462 \u20013 \'85":"\u55357 \u56567  \u21517 \u21050 \u35501 \u21462 "\}<input ref=\{cardRef\} type="file" accept="image/*" className="hidden" onChange=\{handleCard\} disabled=\{cardLoading\}/>\
+          </label>\
+        </div>\
+      </header>\
+\
+      \{upcoming.length>0&&(\
+        <div className="mx-4 mt-4 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">\
+          <div className="text-xs font-bold text-rose-600 mb-2">\uc0\u55357 \u56596  30\u26085 \u20197 \u20869 \u12398 \u12372 \u35352 \u24565 \u26085 </div>\
+          <div className="flex flex-wrap gap-2">\
+            \{upcoming.map((u,i)=>(\
+              <button key=\{i\} onClick=\{()=>\{ const c=customers.find(x=>x.id===u.id); if(c) openDetail(c); \}\} className="text-xs bg-white border border-rose-200 rounded-full px-3 py-1 text-rose-700">\
+                \{u.diff===0?"\uc0\u55356 \u57225  \u26412 \u26085 \u12288 ":u.diff===1?"\u26126 \u26085 \u12288 ":`$\{u.diff\}\u26085 \u24460 \u12288 `\}\{u.name\}\u27096 \u12288 \{u.label\}\u65288 \{u.date\}\u65289 \
+              </button>\
+            ))\}\
+          </div>\
+        </div>\
+      )\}\
+\
+      <div className="grid grid-cols-2 gap-3 px-4 py-4">\
+        \{[\{label:"\uc0\u12362 \u23458 \u27096 \u32207 \u25968 ",value:`$\{stats.total\}\u21517 `,c:"text-stone-700"\},\{label:"VIP\u27096 ",value:`$\{stats.vip\}\u21517 `,c:"text-rose-700"\},\{label:"\u24120 \u36899 \u27096 ",value:`$\{stats.regular\}\u21517 `,c:"text-amber-700"\},\{label:"\u12372 \u21033 \u29992 \u32207 \u38989 ",value:fmt(stats.totalSpend),c:"text-emerald-700"\}].map(s=>(\
+          <div key=\{s.label\} className=\{`$\{card\} p-4 text-center`\}>\
+            <div className=\{`text-xl font-bold $\{s.c\}`\}>\{s.value\}</div>\
+            <div className="text-xs text-stone-400 mt-1">\{s.label\}</div>\
+          </div>\
+        ))\}\
+      </div>\
+\
+      <div className="px-4 pb-3 flex gap-2">\
+        <input value=\{search\} onChange=\{e=>setSearch(e.target.value)\} placeholder="\uc0\u55357 \u56589  \u12362 \u21517 \u21069 \u12539 \u20250 \u31038 \u12391 \u26908 \u32034 ..." className=\{`flex-1 $\{iCls\}`\}/>\
+        <select value=\{filterStatus\} onChange=\{e=>setFilterStatus(e.target.value)\} className=\{`$\{iCls\} w-auto`\}>\
+          <option>\uc0\u12377 \u12409 \u12390 </option>\{STATUS_OPTIONS.map(s=><option key=\{s\}>\{s\}</option>)\}\
+        </select>\
+      </div>\
+\
+      <div className="px-4 pb-8 space-y-2">\
+        \{filtered.length===0&&<div className="text-center py-10 text-stone-300">\uc0\u12362 \u23458 \u27096 \u12364 \u35211 \u12388 \u12363 \u12426 \u12414 \u12379 \u12435 </div>\}\
+        \{filtered.map(c=>(\
+          <div key=\{c.id\} className=\{`$\{card\} p-4`\} onClick=\{()=>openDetail(c)\}>\
+            <div className="flex items-start justify-between">\
+              <div className="flex-1">\
+                <div className="flex items-center gap-2 flex-wrap">\
+                  <span className="font-bold text-stone-800">\{c.name\}\{upcoming.some(u=>u.id===c.id)&&" \uc0\u55356 \u57218 "\}</span>\
+                  <span className=\{`px-2 py-0.5 rounded-full text-xs font-medium $\{STATUS_COLORS[c.status]||""\}`\}>\{c.status\}</span>\
+                </div>\
+                <div className="text-xs text-stone-500 mt-1">\{c.company\}\uc0\u12288 \{[c.department,c.title].filter(Boolean).join(" / ")\}</div>\
+                <div className="flex gap-3 mt-1 text-xs text-stone-400">\
+                  <span>\uc0\u26368 \u32066 \u65306 \{fmtD(c.lastVisit)\}</span>\
+                  <span>\{fmt(c.totalSpend)\}</span>\
+                </div>\
+              </div>\
+              <div className="flex flex-col gap-1 ml-2" onClick=\{e=>e.stopPropagation()\}>\
+                <button onClick=\{()=>openMsg(c,"\uc0\u12362 \u31036 ")\} className="text-rose-500 text-xs bg-rose-50 px-2 py-1 rounded-lg">\u9993 \u65039 </button>\
+                <button onClick=\{()=>openEdit(c)\} className="text-stone-400 text-xs bg-stone-50 px-2 py-1 rounded-lg">\uc0\u32232 \u38598 </button>\
+              </div>\
+            </div>\
+          </div>\
+        ))\}\
+      </div>\
+    </div>\
+  );\
+\
+  // \uc0\u9552 \u9552  DETAIL \u9552 \u9552 \
+  if(view==="detail"&&selected) return (\
+    <div className=\{`min-h-screen $\{bg\}`\}>\
+      \{msgMode&&<MsgModal/>\}\
+      <header className="bg-stone-800 text-stone-100 px-4 py-4">\
+        <div className="flex items-center gap-2 mb-2">\
+          <button onClick=\{()=>setView("list")\} className="bg-stone-700 px-3 py-1.5 rounded-lg text-xs">\uc0\u8592  \u19968 \u35239 </button>\
+          <span className=\{`text-xs px-2 py-0.5 rounded-full font-medium $\{STATUS_COLORS[selected.status]\}`\}>\{selected.status\}</span>\
+        </div>\
+        <div className="font-bold text-lg">\{selected.name\} \uc0\u27096 </div>\
+        <div className="text-xs text-stone-400">\{selected.company\}\uc0\u12288 \{selected.title\}</div>\
+        <div className="flex gap-2 mt-3">\
+          <button onClick=\{()=>openMsg(selected,"\uc0\u12362 \u31036 ")\} className="bg-rose-600 text-white text-xs font-medium px-3 py-2 rounded-xl flex-1">\u9993 \u65039  \u12513 \u12483 \u12475 \u12540 \u12472 </button>\
+          <button onClick=\{()=>openGCal(selected)\} className="bg-blue-600 text-white text-xs font-medium px-3 py-2 rounded-xl flex-1">\uc0\u55357 \u56517  \u20104 \u32004 \u30331 \u37682 </button>\
+          <button onClick=\{()=>openEdit(selected)\} className="bg-white text-stone-700 text-xs font-medium px-3 py-2 rounded-xl">\uc0\u32232 \u38598 </button>\
+          <button onClick=\{()=>delCustomer(selected.id)\} className="bg-red-600 text-white text-xs font-medium px-3 py-2 rounded-xl">\uc0\u21066 \u38500 </button>\
+        </div>\
+      </header>\
+\
+      <div className="flex border-b border-stone-200 bg-white px-2 overflow-x-auto">\
+        \{[["info","\uc0\u22522 \u26412 \u24773 \u22577 "],["family","\u12372 \u23478 \u26063 "],["history","\u12372 \u26469 \u24215 "],["notes","\u12513 \u12514 "]].map(([k,l])=>(\
+          <button key=\{k\} onClick=\{()=>setTab(k)\} className=\{`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition $\{tab===k?"border-rose-600 text-rose-700":"border-transparent text-stone-400"\}`\}>\{l\}</button>\
+        ))\}\
+      </div>\
+\
+      <div className="px-4 py-5">\
+        \{tab==="info"&&(\
+          <div className=\{`$\{card\} p-5 space-y-3`\}>\
+            \{[["\uc0\u20250 \u31038 \u21517 ",selected.company||"\'97"],["\u37096 \u32626 ",selected.department||"\'97"],["\u24441 \u32887 ",selected.title||"\'97"],["\u12513 \u12540 \u12523 ",selected.email||"\'97"],["\u12362 \u38651 \u35441 ",selected.phone||"\'97"],["\u12362 \u35477 \u29983 \u26085 ",selected.birthday?`$\{fmtD(selected.birthday)\}\u65288 $\{fmtMD(selected.birthday)\}\u65289 `:"\'97"],["\u12372 \u32080 \u23130 \u35352 \u24565 \u26085 ",selected.anniversary?`$\{fmtD(selected.anniversary)\}\u65288 $\{fmtMD(selected.anniversary)\}\u65289 `:"\'97"],["\u12372 \u32057 \u20171 \u32773 ",selected.referrer||"\'97"],["\u12372 \u36899 \u32097 \u26041 \u27861 ",(selected.contactMethods||[]).length>0?selected.contactMethods.map(m=>`$\{CONTACT_ICONS[m]\}$\{m\}`).join("\u12288 "):"\'97"],["\u12372 \u21033 \u29992 \u32207 \u38989 ",fmt(selected.totalSpend)],["\u21021 \u12372 \u26469 \u24215 \u26085 ",fmtD(selected.firstVisit)],["\u26368 \u32066 \u12372 \u26469 \u24215 \u26085 ",fmtD(selected.lastVisit)]].map(([l,v])=>(\
+              <div key=\{l\} className="flex gap-3 text-sm border-b border-stone-50 pb-2.5 last:border-0 last:pb-0">\
+                <span className="text-stone-400 w-32 shrink-0 text-xs pt-0.5">\{l\}</span>\
+                <span className="text-stone-800 font-medium text-sm">\{v\}</span>\
+              </div>\
+            ))\}\
+          </div>\
+        )\}\
+\
+        \{tab==="family"&&(\
+          <div className="space-y-3">\
+            \{!familyDraft&&<button onClick=\{()=>setFamilyDraft(emptyFamily())\} className="w-full border-2 border-dashed border-rose-200 text-rose-400 rounded-2xl py-3 text-sm">\uc0\u65291  \u12372 \u23478 \u26063 \u12434 \u36861 \u21152 \u12377 \u12427 </button>\}\
+            \{familyDraft&&(\
+              <div className=\{`$\{card\} p-4 space-y-3`\}>\
+                <div className="grid grid-cols-2 gap-3">\
+                  <div><div className="text-xs text-stone-400 mb-1">\uc0\u12362 \u21517 \u21069 </div><input value=\{familyDraft.name\} onChange=\{e=>setFamilyDraft(p=>(\{...p,name:e.target.value\}))\} className=\{iCls\}/></div>\
+                  <div><div className="text-xs text-stone-400 mb-1">\uc0\u32154 \u26564 </div><input value=\{familyDraft.relation\} onChange=\{e=>setFamilyDraft(p=>(\{...p,relation:e.target.value\}))\} className=\{iCls\}/></div>\
+                </div>\
+                <div><div className="text-xs text-stone-400 mb-1">\uc0\u12362 \u35477 \u29983 \u26085 </div><input type="date" value=\{familyDraft.birthday\} onChange=\{e=>setFamilyDraft(p=>(\{...p,birthday:e.target.value\}))\} className=\{iCls\}/></div>\
+                <div className="flex gap-2"><button onClick=\{saveFamily\} className="flex-1 bg-rose-700 text-white text-sm py-2 rounded-xl">\uc0\u20445 \u23384 </button><button onClick=\{()=>setFamilyDraft(null)\} className="flex-1 bg-stone-100 text-stone-600 text-sm py-2 rounded-xl">\u12461 \u12515 \u12531 \u12475 \u12523 </button></div>\
+              </div>\
+            )\}\
+            \{(selected.family||[]).length===0&&!familyDraft&&<p className="text-stone-300 text-sm text-center py-8">\uc0\u12372 \u23478 \u26063 \u24773 \u22577 \u12364 \u12354 \u12426 \u12414 \u12379 \u12435 </p>\}\
+            \{(selected.family||[]).map(f=>(\
+              <div key=\{f.id\} className=\{`$\{card\} p-4 flex items-center justify-between`\}>\
+                <div><div className="font-bold text-stone-800 text-sm">\{f.name\} <span className="text-xs text-stone-400 font-normal">(\{f.relation\})</span></div>\{f.birthday&&<div className="text-xs text-stone-400 mt-0.5">\uc0\u55356 \u57218  \{fmtD(f.birthday)\}\u65288 \{fmtMD(f.birthday)\}\u65289 </div>\}</div>\
+                <div className="flex gap-2"><button onClick=\{()=>setFamilyDraft(\{...f\})\} className="text-stone-400 text-xs">\uc0\u32232 \u38598 </button><button onClick=\{()=>delFamily(f.id)\} className="text-red-300 text-xs">\u21066 \u38500 </button></div>\
+              </div>\
+            ))\}\
+          </div>\
+        )\}\
+\
+        \{tab==="history"&&(\
+          <div className="space-y-3">\
+            \{!visitForm&&<button onClick=\{()=>setVisitForm(emptyVisit())\} className="w-full border-2 border-dashed border-rose-200 text-rose-400 rounded-2xl py-3 text-sm">\uc0\u65291  \u12372 \u26469 \u24215 \u12434 \u35352 \u37682 \u12377 \u12427 </button>\}\
+            \{visitForm&&(\
+              <div className=\{`$\{card\} p-4 space-y-3`\}>\
+                <div className="grid grid-cols-2 gap-3">\
+                  <div><div className="text-xs text-stone-400 mb-1">\uc0\u12372 \u26469 \u24215 \u26085 </div><input type="date" value=\{visitForm.date\} onChange=\{e=>setVisitForm(p=>(\{...p,date:e.target.value\}))\} className=\{iCls\}/></div>\
+                  <div><div className="text-xs text-stone-400 mb-1">\uc0\u12372 \u20154 \u25968 </div><input type="number" min="1" value=\{visitForm.guests\} onChange=\{e=>setVisitForm(p=>(\{...p,guests:e.target.value\}))\} placeholder="2" className=\{iCls\}/></div>\
+                  <div><div className="text-xs text-stone-400 mb-1">\uc0\u12362 \u26009 \u29702 </div><select value=\{visitForm.menu\} onChange=\{e=>setVisitForm(p=>(\{...p,menu:e.target.value\}))\} className=\{iCls\}>\{SEASONS.map(s=><option key=\{s\}>\{s\}</option>)\}</select></div>\
+                  <div><div className="text-xs text-stone-400 mb-1">\uc0\u12362 \u20250 \u35336 </div><input type="number" value=\{visitForm.amount\} onChange=\{e=>setVisitForm(p=>(\{...p,amount:e.target.value\}))\} placeholder="50000" className=\{iCls\}/></div>\
+                </div>\
+                <div><div className="text-xs text-stone-400 mb-1">\uc0\u24403 \u26085 \u12398 \u27096 \u23376 </div><textarea value=\{visitForm.detail\} onChange=\{e=>setVisitForm(p=>(\{...p,detail:e.target.value\}))\} rows=\{3\} className=\{`$\{iCls\} resize-none`\}/></div>\
+                <div className="flex gap-2">\
+                  <button onClick=\{saveVisit\} className="flex-1 bg-rose-700 text-white text-sm py-2 rounded-xl">\uc0\u35352 \u37682 \u12377 \u12427 </button>\
+                  <button onClick=\{()=>openGCal(selected,visitForm.date)\} className="bg-blue-600 text-white text-sm px-3 py-2 rounded-xl">\uc0\u55357 \u56517 </button>\
+                  <button onClick=\{()=>setVisitForm(null)\} className="flex-1 bg-stone-100 text-stone-600 text-sm py-2 rounded-xl">\uc0\u12461 \u12515 \u12531 \u12475 \u12523 </button>\
+                </div>\
+              </div>\
+            )\}\
+            \{(selected.history||[]).length===0&&<p className="text-stone-300 text-sm text-center py-8">\uc0\u26469 \u24215 \u23653 \u27508 \u12364 \u12372 \u12374 \u12356 \u12414 \u12379 \u12435 </p>\}\
+            \{(selected.history||[]).map(v=>(\
+              <div key=\{v.id\} className=\{`$\{card\} p-4 border-l-4 border-rose-300`\}>\
+                <div className="flex items-start justify-between mb-1">\
+                  <div><span className="text-sm font-bold text-stone-700">\{fmtD(v.date)\}</span><span className="ml-2 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">\{v.menu\}</span><span className="ml-2 text-xs text-stone-400">\{v.guests\}\uc0\u21517 \u27096 </span></div>\
+                  <div className="flex items-center gap-2"><span className="text-sm font-bold text-emerald-700">\{fmt(v.amount)\}</span><button onClick=\{()=>delVisit(v.id)\} className="text-red-300 text-xs">\uc0\u21066 \u38500 </button></div>\
+                </div>\
+                \{v.detail&&<p className="text-xs text-stone-500 leading-relaxed">\{v.detail\}</p>\}\
+              </div>\
+            ))\}\
+          </div>\
+        )\}\
+\
+        \{tab==="notes"&&(\
+          <div className="space-y-4">\
+            \{MEMO_CATS.map(cat=>\{\
+              const items=(selected.memos?.[cat.key]||[]);\
+              return(\
+                <div key=\{cat.key\} className=\{`rounded-2xl border-2 $\{cat.color\} p-4`\}>\
+                  <div className="flex items-center gap-2 mb-3"><span>\{cat.icon\}</span><span className="text-sm font-bold text-stone-700">\{cat.label\}</span>\{items.length>0&&<span className=\{`text-xs px-2 py-0.5 rounded-full border font-medium $\{cat.badge\}`\}>\{items.length\}\uc0\u20214 </span>\}</div>\
+                  <div className="flex gap-2 mb-3">\
+                    <input value=\{newMemos[cat.key]\} onChange=\{e=>setNewMemos(p=>(\{...p,[cat.key]:e.target.value\}))\} onKeyDown=\{e=>e.key==="Enter"&&addMemo(cat.key)\} placeholder=\{cat.key==="allergy"?"\uc0\u20363 \u65306 \u30002 \u27579 \u39006 ":cat.key==="dislike"?"\u20363 \u65306 \u36763 \u12356 \u12418 \u12398 ":cat.key==="favorite"?"\u20363 \u65306 \u26494 \u33592 ":"\u20363 \u65306 \u35352 \u24565 \u26085 \u12395 \u12362 \u36196 \u39151 "\} className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"/>\
+                    <button onClick=\{()=>addMemo(cat.key)\} className="bg-stone-700 text-white text-sm px-4 rounded-xl">\uc0\u36861 \u21152 </button>\
+                  </div>\
+                  \{items.length===0?<p className="text-xs text-stone-400 text-center py-1">\uc0\u12414 \u12384 \u30331 \u37682 \u12364 \u12354 \u12426 \u12414 \u12379 \u12435 </p>:\
+                    <div className="flex flex-wrap gap-2">\{items.map(m=>(\
+                      <div key=\{m.id\} className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-full px-3 py-1 text-sm text-stone-700">\
+                        <span>\{m.text\}</span><button onClick=\{()=>delMemo(cat.key,m.id)\} className="text-stone-300 hover:text-red-400 text-xs ml-1">\uc0\u10005 </button>\
+                      </div>\
+                    ))\}</div>\}\
+                </div>\
+              );\
+            \})\}\
+          </div>\
+        )\}\
+      </div>\
+    </div>\
+  );\
+\
+  // \uc0\u9552 \u9552  FORM \u9552 \u9552 \
+  if(view==="form") return (\
+    <div className=\{`min-h-screen $\{bg\}`\}>\
+      <header className="bg-stone-800 text-stone-100 px-4 py-4 flex items-center gap-3">\
+        <button onClick=\{()=>setView(isEdit?"detail":"list")\} className="bg-stone-700 px-3 py-1.5 rounded-lg text-xs">\uc0\u8592  \u25147 \u12427 </button>\
+        <h1 className="text-base font-bold">\{isEdit?"\uc0\u12362 \u23458 \u27096 \u24773 \u22577 \u12434 \u32232 \u38598 ":"\u26032 \u35215 \u12362 \u23458 \u27096 \u30331 \u37682 "\}</h1>\
+        \{!isEdit&&<label className="ml-auto cursor-pointer bg-amber-600 text-white text-xs font-medium px-3 py-1.5 rounded-xl">\{cardLoading?"\uc0\u35501 \u21462 \u20013 \'85":"\u55357 \u56567  \u21517 \u21050 \u35501 \u21462 "\}<input type="file" accept="image/*" className="hidden" onChange=\{handleCard\} disabled=\{cardLoading\}/></label>\}\
+      </header>\
+      <div className="px-4 py-5">\
+        <div className=\{`$\{card\} p-5 space-y-4`\}>\
+          \{[\{label:"\uc0\u12362 \u21517 \u21069  \u65290 ",key:"name",type:"text",ph:"\u23665 \u30000  \u22826 \u37070 "\},\{label:"\u20250 \u31038 \u21517 ",key:"company",type:"text",ph:"\u26666 \u24335 \u20250 \u31038 \u12295 \u12295 "\},\{label:"\u37096 \u32626 ",key:"department",type:"text",ph:"\u21942 \u26989 \u26412 \u37096 "\},\{label:"\u24441 \u32887 ",key:"title",type:"text",ph:"\u37096 \u38263 "\},\{label:"\u12513 \u12540 \u12523 \u12450 \u12489 \u12524 \u12473 ",key:"email",type:"email",ph:"example@company.co.jp"\},\{label:"\u12362 \u38651 \u35441 \u30058 \u21495 ",key:"phone",type:"tel",ph:"090-0000-0000"\},\{label:"\u12362 \u35477 \u29983 \u26085 ",key:"birthday",type:"date"\},\{label:"\u12372 \u32080 \u23130 \u35352 \u24565 \u26085 ",key:"anniversary",type:"date"\},\{label:"\u12372 \u32057 \u20171 \u32773 ",key:"referrer",type:"text",ph:"\u12362 \u21517 \u21069 \u12420 \u12372 \u38306 \u20418 \u12394 \u12393 "\},\{label:"\u12372 \u21033 \u29992 \u32207 \u38989 \u65288 \u20870 \u65289 ",key:"totalSpend",type:"number",ph:"0"\},\{label:"\u21021 \u12372 \u26469 \u24215 \u26085 ",key:"firstVisit",type:"date"\},\{label:"\u26368 \u32066 \u12372 \u26469 \u24215 \u26085 ",key:"lastVisit",type:"date"\}].map(f=>(\
+            <div key=\{f.key\}><div className="text-xs font-medium text-stone-500 mb-1">\{f.label\}</div><input type=\{f.type\} value=\{form[f.key]||""\} onChange=\{e=>setForm(p=>(\{...p,[f.key]:e.target.value\}))\} placeholder=\{f.ph||""\} className=\{iCls\}/></div>\
+          ))\}\
+          <div><div className="text-xs font-medium text-stone-500 mb-2">\uc0\u12372 \u36899 \u32097 \u26041 \u27861 </div>\
+            <div className="flex flex-wrap gap-2">\{CONTACT_METHODS.map(m=>\{ const a=(form.contactMethods||[]).includes(m); return(<button key=\{m\} type="button" onClick=\{()=>toggleC(m)\} className=\{`px-3 py-1.5 rounded-full text-xs font-medium border transition $\{a?"bg-rose-700 text-white border-rose-700":"bg-white text-stone-500 border-stone-200"\}`\}>\{CONTACT_ICONS[m]\} \{m\}</button>);\})\}</div>\
+          </div>\
+          <div><div className="text-xs font-medium text-stone-500 mb-1">\uc0\u12473 \u12486 \u12540 \u12479 \u12473 </div><select value=\{form.status\} onChange=\{e=>setForm(p=>(\{...p,status:e.target.value\}))\} className=\{iCls\}>\{STATUS_OPTIONS.map(s=><option key=\{s\}>\{s\}</option>)\}</select></div>\
+          <div className="flex gap-3 pt-2">\
+            <button onClick=\{saveForm\} className="flex-1 bg-rose-700 text-white font-semibold py-2.5 rounded-xl">\{isEdit?"\uc0\u26356 \u26032 \u12377 \u12427 ":"\u30331 \u37682 \u12377 \u12427 "\}</button>\
+            <button onClick=\{()=>setView(isEdit?"detail":"list")\} className="flex-1 bg-stone-100 text-stone-600 font-semibold py-2.5 rounded-xl">\uc0\u12461 \u12515 \u12531 \u12475 \u12523 </button>\
+          </div>\
+        </div>\
+      </div>\
+    </div>\
+  );\
+\}\
+\
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);\
+</script>\
+</body>\
+</html>}
